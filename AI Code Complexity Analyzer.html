@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Code Complexity Analyzer — ACM COMPUTE 2026</title>
+  <meta name="description" content="Live reproducibility tool for: 'Human Oversight in the Generative AI Era: A Complexity-Based Analysis of LLM-Generated Code for Introductory Programming Education'. Submitted to ACM COMPUTE 2026." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff;
+      --bg2: #f7f7f5;
+      --bg3: #f0f0ec;
+      --text: #1a1a18;
+      --text2: #5a5a56;
+      --text3: #8a8a84;
+      --border: rgba(0,0,0,0.10);
+      --border2: rgba(0,0,0,0.18);
+      --radius: 8px;
+      --radius-lg: 12px;
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      --mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1a;
+        --bg2: #252523;
+        --bg3: #2e2e2b;
+        --text: #f0f0ec;
+        --text2: #a0a09a;
+        --text3: #666660;
+        --border: rgba(255,255,255,0.10);
+        --border2: rgba(255,255,255,0.18);
+      }
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg3);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--bg);
+      border-bottom: 0.5px solid var(--border2);
+      padding: 20px 32px;
+    }
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .paper-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: #E6F1FB;
+      color: #185FA5;
+      margin-bottom: 8px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .paper-badge { background: #0C447C; color: #B5D4F4; }
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+      max-width: 680px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: var(--text2);
+      margin-top: 4px;
+    }
+    .header-links {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn-outline {
+      padding: 7px 14px;
+      border: 0.5px solid var(--border2);
+      border-radius: var(--radius);
+      font-size: 13px;
+      cursor: pointer;
+      background: var(--bg);
+      color: var(--text);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .btn-outline:hover { background: var(--bg2); }
+    .btn-primary {
+      padding: 7px 14px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 13px;
+      cursor: pointer;
+      background: #185FA5;
+      color: #fff;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #0C447C; }
+
+    /* ── Pillar explainer bar ── */
+    .pillars {
+      background: var(--bg2);
+      border-bottom: 0.5px solid var(--border);
+      padding: 12px 32px;
+    }
+    .pillars-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 700px) { .pillars-inner { grid-template-columns: 1fr; } }
+    .pillar {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .pillar-num {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 20px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .p1 { background: #FCEBEB; color: #A32D2D; }
+    .p2 { background: #FAEEDA; color: #854F0B; }
+    .p3 { background: #EAF3DE; color: #3B6D11; }
+    @media (prefers-color-scheme: dark) {
+      .p1 { background: #501313; color: #F7C1C1; }
+      .p2 { background: #412402; color: #FAC775; }
+      .p3 { background: #173404; color: #C0DD97; }
+    }
+    .pillar-text { font-size: 12px; color: var(--text2); line-height: 1.5; }
+    .pillar-text strong { color: var(--text); }
+
+    /* ── Main layout ── */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 32px;
+    }
+    @media (max-width: 700px) { main { padding: 16px; } }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      padding: 7px 14px;
+      border: 0.5px solid var(--border2);
+      border-radius: var(--radius);
+      font-size: 13px;
+      cursor: pointer;
+      background: var(--bg);
+      color: var(--text2);
+      transition: all 0.15s;
+      font-family: var(--font);
+    }
+    .tab.active {
+      background: var(--bg2);
+      color: var(--text);
+      border-color: var(--border2);
+      font-weight: 600;
+    }
+    .tab:hover:not(.active) { background: var(--bg2); }
+
+    /* ── Code panels ── */
+    .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 700px) { .panels { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--bg);
+      border: 0.5px solid var(--border2);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .panel-head {
+      padding: 10px 14px;
+      border-bottom: 0.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-head span { font-size: 13px; font-weight: 600; }
+    .badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+    .badge-raw { background: #FCEBEB; color: #A32D2D; }
+    .badge-scaf { background: #EAF3DE; color: #3B6D11; }
+    @media (prefers-color-scheme: dark) {
+      .badge-raw { background: #501313; color: #F7C1C1; }
+      .badge-scaf { background: #173404; color: #C0DD97; }
+    }
+    textarea {
+      width: 100%;
+      height: 240px;
+      border: none;
+      outline: none;
+      resize: vertical;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+      padding: 12px 14px;
+      background: var(--bg2);
+      color: var(--text);
+      display: block;
+    }
+    textarea::placeholder { color: var(--text3); }
+
+    /* ── Metrics ── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 14px;
+    }
+    .metric {
+      background: var(--bg2);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+    }
+    .metric-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+    .metric-val { font-size: 22px; font-weight: 600; }
+    .metric-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+    .val-ok    { color: #3B6D11; }
+    .val-warn  { color: #854F0B; }
+    .val-danger{ color: #A32D2D; }
+    @media (prefers-color-scheme: dark) {
+      .val-ok    { color: #97C459; }
+      .val-warn  { color: #EF9F27; }
+      .val-danger{ color: #F09595; }
+    }
+
+    .verdict {
+      margin: 0 14px 14px;
+      padding: 9px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      border: 0.5px solid;
+    }
+    .verdict-ok     { background:#EAF3DE; color:#3B6D11; border-color:#97C459; }
+    .verdict-warn   { background:#FAEEDA; color:#854F0B; border-color:#EF9F27; }
+    .verdict-danger { background:#FCEBEB; color:#A32D2D; border-color:#F09595; }
+    @media (prefers-color-scheme: dark) {
+      .verdict-ok     { background:#173404; color:#C0DD97; border-color:#3B6D11; }
+      .verdict-warn   { background:#412402; color:#FAC775; border-color:#854F0B; }
+      .verdict-danger { background:#501313; color:#F7C1C1; border-color:#A32D2D; }
+    }
+
+    /* ── Bars ── */
+    .bar-section { padding: 0 14px 14px; }
+    .bar-label {
+      font-size: 12px;
+      color: var(--text2);
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .bar-track {
+      height: 8px;
+      background: var(--bg3);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+
+    /* ── Hotspots ── */
+    .cog-section { padding: 0 14px 14px; }
+    .section-head {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+    .cog-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      font-size: 12px;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .cog-item:last-child { border-bottom: none; }
+    .cog-cost  { min-width: 28px; font-weight: 600; text-align: right; }
+    .cog-desc  { color: var(--text2); flex: 1; }
+    .cog-line  { font-size: 11px; color: var(--text3); min-width: 46px; text-align: right; }
+
+    /* ── Compare section ── */
+    .compare-section {
+      background: var(--bg);
+      border: 0.5px solid var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .compare-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+    .compare-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .compare-name { min-width: 100px; font-size: 12px; color: var(--text2); }
+    .compare-bars { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    .compare-bar {
+      height: 20px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 11px;
+      font-weight: 600;
+      transition: width 0.5s ease;
+      min-width: 40px;
+      white-space: nowrap;
+    }
+    .bar-raw  { background: #F7C1C1; color: #791F1F; }
+    .bar-scaf { background: #C0DD97; color: #27500A; }
+    @media (prefers-color-scheme: dark) {
+      .bar-raw  { background: #791F1F; color: #F7C1C1; }
+      .bar-scaf { background: #27500A; color: #C0DD97; }
+    }
+    .reduction-pct {
+      font-size: 12px;
+      color: var(--text2);
+      min-width: 52px;
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .insight-box {
+      background: var(--bg2);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.6;
+      border-left: 3px solid #185FA5;
+    }
+    .insight-box strong { color: var(--text); }
+
+    /* ── Methodology panel ── */
+    .method-section {
+      background: var(--bg);
+      border: 0.5px solid var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-top: 16px;
+    }
+    .method-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 14px; }
+    @media (max-width: 700px) { .method-grid { grid-template-columns: 1fr; } }
+    .method-card {
+      background: var(--bg2);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+    .method-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .method-card p  { font-size: 12px; color: var(--text2); line-height: 1.6; }
+    .formula {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: var(--bg3);
+      padding: 8px 10px;
+      border-radius: var(--radius);
+      margin-top: 8px;
+      color: var(--text);
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 0.5px solid var(--border);
+      padding: 16px 32px;
+      margin-top: 32px;
+      font-size: 12px;
+      color: var(--text3);
+      text-align: center;
+    }
+    footer a { color: var(--text2); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="paper-badge">
+        &#128196; ACM COMPUTE 2026 — Reproducibility Artifact
+      </div>
+      <h1>AI Code Complexity Analyzer</h1>
+      <p class="subtitle">Live demonstration tool for the paper: <em>"Human Oversight in the Generative AI Era: A Metric-Based Analysis of LLM-Generated Code in Introductory Programming Education"</em></p>
+    </div>
+    <div class="header-links">
+      <a class="btn-outline" href="https://github.com/YOUR_USERNAME/ai-complexity-analyzer" target="_blank">&#128279; GitHub</a>
+      <a class="btn-primary" href="#analyzer">&#9654; Run Analysis</a>
+    </div>
+  </div>
+</header>
+
+<div class="pillars">
+  <div class="pillars-inner">
+    <div class="pillar">
+      <span class="pillar-num p1">P1</span>
+      <div class="pillar-text"><strong>Core Hypothesis:</strong> Raw LLM output violates introductory constraints — verified live by pasting any AI-generated code below.</div>
+    </div>
+    <div class="pillar">
+      <span class="pillar-num p2">P2</span>
+      <div class="pillar-text"><strong>Paradigm Shift:</strong> Halstead Effort (E) quantifies the extraneous cognitive load of evaluating vs. writing code.</div>
+    </div>
+    <div class="pillar">
+      <span class="pillar-num p3">P3</span>
+      <div class="pillar-text"><strong>Scaffolded Solution:</strong> Instructional constraints measurably reduce E and Cognitive Complexity into a safe learning zone.</div>
+    </div>
+  </div>
+</div>
+
+<main id="analyzer">
+
+  <div class="tabs" id="tabBar">
+    <button class="tab active" onclick="loadExample('prime')">Problem 1 — Prime check</button>
+    <button class="tab"        onclick="loadExample('vowels')">Problem 2 — Count vowels</button>
+    <button class="tab"        onclick="loadExample('stack')">Problem 3 — Stack (basic DS)</button>
+    <button class="tab"        onclick="loadExample('fib')">Problem 4 — Fibonacci</button>
+    <button class="tab"        onclick="loadExample('custom')">&#9998; Paste your own code</button>
+  </div>
+
+  <div class="panels">
+    <!-- LEFT: Raw LLM -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>Raw LLM output</span>
+        <span class="badge badge-raw">Unconstrained</span>
+      </div>
+      <textarea id="rawCode" spellcheck="false"
+        placeholder="Paste raw ChatGPT / Copilot / Gemini output here..."></textarea>
+      <div class="metrics-grid" id="rawMetrics"></div>
+      <div id="rawVerdict"></div>
+      <div class="bar-section" id="rawBars"></div>
+      <div class="cog-section" id="rawCog"></div>
+    </div>
+
+    <!-- RIGHT: Scaffolded -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>Scaffolded / constrained output</span>
+        <span class="badge badge-scaf">Instructionally constrained</span>
+      </div>
+      <textarea id="scafCode" spellcheck="false"
+        placeholder="Paste the pedagogically constrained version here..."></textarea>
+      <div class="metrics-grid" id="scafMetrics"></div>
+      <div id="scafVerdict"></div>
+      <div class="bar-section" id="scafBars"></div>
+      <div class="cog-section" id="scafCog"></div>
+    </div>
+  </div>
+
+  <!-- Comparative reduction chart -->
+  <div class="compare-section" id="compareSection"></div>
+
+  <!-- Metric methodology -->
+  <div class="method-section">
+    <div class="section-head">Metric methodology (as described in paper Section 3)</div>
+    <div class="method-grid">
+      <div class="method-card">
+        <h3>Halstead Difficulty (D)</h3>
+        <p>Measures how difficult code is to write or understand, based on the ratio of unique operators to operand usage. Rises sharply with type hints, lambda expressions, and advanced operators.</p>
+        <div class="formula">D = (η₁/2) × (N₂/η₂)</div>
+      </div>
+      <div class="method-card">
+        <h3>Halstead Effort (E)</h3>
+        <p>The primary metric in this paper. Represents the total mental work (in elementary discriminations) required to process and evaluate a code fragment. Directly models extraneous cognitive load.</p>
+        <div class="formula">E = D × V = D × N × log₂(n)</div>
+      </div>
+      <div class="method-card">
+        <h3>Cognitive Complexity</h3>
+        <p>Counts structural complexity: nesting depth, boolean chains, comprehensions, lambdas, and control flow. Each nesting level adds a penalty, reflecting how deeply a reader must track program state.</p>
+        <div class="formula">CC = Σ (1 + nesting_depth)<br>per control structure</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Reproducibility artifact for ACM COMPUTE 2026 submission.
+  All computations run entirely client-side (JavaScript) — no data is transmitted.
+  Metric implementations follow Halstead (1977) and the SonarSource Cognitive Complexity specification (Campbell, 2018).
+  &nbsp;|&nbsp; <a href="https://github.com/YOUR_USERNAME/ai-complexity-analyzer" target="_blank">View source on GitHub</a>
+</footer>
+
+<script>
+/* ===== CODE EXAMPLES ===== */
+const examples = {
+  prime: {
+    raw: `import math
+from typing import Optional
+
+def is_prime(n: int) -> bool:
+    """Check if n is prime using trial division with optimization."""
+    if not isinstance(n, int) or n < 2:
+        return False
+    if n == 2:
+        return True
+    if n % 2 == 0:
+        return False
+    for i in range(3, int(math.sqrt(n)) + 1, 2):
+        if n % i == 0:
+            return False
+    return True
+
+def find_primes_in_range(
+    start: int, end: int,
+    filter_fn: Optional[callable] = None
+) -> list[int]:
+    return [
+        p for p in range(start, end + 1)
+        if is_prime(p) and (filter_fn is None or filter_fn(p))
+    ]
+
+result = find_primes_in_range(1, 50, lambda x: x % 3 != 0)
+print(result)`,
+    scaf: `def is_prime(n):
+    if n < 2:
+        return False
+    for i in range(2, n):
+        if n % i == 0:
+            return False
+    return True
+
+number = int(input("Enter a number: "))
+if is_prime(number):
+    print("Prime")
+else:
+    print("Not prime")`
+  },
+  vowels: {
+    raw: `from collections import Counter
+import re
+
+def count_vowels(text: str, case_sensitive: bool = False) -> dict:
+    """Count vowels with optional case sensitivity and full breakdown."""
+    if not case_sensitive:
+        text = text.lower()
+    vowels = 'aeiou'
+    counts = Counter(ch for ch in text if ch in vowels)
+    return {
+        'total': sum(counts.values()),
+        'breakdown': dict(counts),
+        'percentage': round(
+            sum(counts.values()) / max(len(re.sub(r'\\s', '', text)), 1) * 100, 2
+        )
+    }
+
+texts = ["Hello World", "Python Programming", ""]
+results = {t: count_vowels(t) for t in texts if t}
+for t, r in results.items():
+    print(f"{t!r}: {r['total']} vowels ({r['percentage']}%)")`,
+    scaf: `def count_vowels(text):
+    count = 0
+    for ch in text:
+        if ch in "aeiou":
+            count = count + 1
+    return count
+
+sentence = input("Enter a string: ")
+result = count_vowels(sentence)
+print("Vowels:", result)`
+  },
+  stack: {
+    raw: `from typing import TypeVar, Generic, Optional
+from dataclasses import dataclass, field
+
+T = TypeVar('T')
+
+@dataclass
+class Stack(Generic[T]):
+    _data: list[T] = field(default_factory=list)
+    _max_size: Optional[int] = None
+
+    def push(self, item: T) -> None:
+        if self._max_size and len(self._data) >= self._max_size:
+            raise OverflowError(f"Stack overflow: max {self._max_size}")
+        self._data.append(item)
+
+    def pop(self) -> T:
+        if not self._data:
+            raise IndexError("Pop from empty stack")
+        return self._data.pop()
+
+    @property
+    def peek(self) -> Optional[T]:
+        return self._data[-1] if self._data else None
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+s: Stack[int] = Stack(_max_size=5)
+for v in [1, 2, 3]:
+    s.push(v)
+print(s.peek, len(s))`,
+    scaf: `stack = []
+
+def push(item):
+    stack.append(item)
+
+def pop():
+    if len(stack) == 0:
+        print("Stack is empty")
+    else:
+        stack.pop()
+
+push(10)
+push(20)
+push(30)
+pop()
+print(stack)`
+  },
+  fib: {
+    raw: `from functools import lru_cache
+from typing import Generator
+
+@lru_cache(maxsize=None)
+def fib_memo(n: int) -> int:
+    """Memoized Fibonacci — O(n) time, O(n) space."""
+    if n < 0:
+        raise ValueError(f"Expected non-negative int, got {n}")
+    return n if n <= 1 else fib_memo(n-1) + fib_memo(n-2)
+
+def fib_generator(limit: int) -> Generator[int, None, None]:
+    a, b = 0, 1
+    while a <= limit:
+        yield a
+        a, b = b, a + b
+
+sequence = list(fib_generator(100))
+lookup = {v: i for i, v in enumerate(sequence)}
+print(sequence)
+print(f"fib(10) = {fib_memo(10)}")`,
+    scaf: `def fibonacci(n):
+    a = 0
+    b = 1
+    for i in range(n):
+        print(a)
+        temp = a + b
+        a = b
+        b = temp
+
+fibonacci(10)`
+  },
+  custom: {
+    raw:  '',
+    scaf: ''
+  }
+};
+
+/* ===== TOKENIZER ===== */
+function tokenize(code) {
+  const OPERATORS = new Set([
+    '+','-','*','/','//','%','**','=','==','!=','<','>','<=','>=',
+    '+=','-=','*=','/=','%=','**=','//=','&','|','^','~','<<','>>',
+    'and','or','not','in','not in','is','is not',
+    'if','else','elif','for','while','return','import','from','def',
+    'class','lambda','with','as','try','except','finally','raise',
+    'yield','yield from','async','await','assert','del','pass',
+    'break','continue','global','nonlocal',
+    'print','input','range','len','append','pop','remove','insert',
+    'int','str','float','bool','list','dict','set','tuple',
+    'True','False','None','type','isinstance','hasattr',
+    'open','read','write','close','enumerate','zip','map','filter',
+    'sorted','reversed','sum','min','max','abs','round'
+  ]);
+  const ops = [], operands = [];
+  const lines = code.split('\n');
+  lines.forEach(line => {
+    const stripped = line.replace(/#.*/,'').trim();
+    if (!stripped) return;
+    const tokens = stripped.match(/[a-zA-Z_]\w*|[+\-*\/]=?|\*\*|\/\/|[=!<>]=|[(){}[\]:,.]|\d+\.?\d*|"[^"]*"|'[^']*'/g) || [];
+    tokens.forEach(t => {
+      if (OPERATORS.has(t)) ops.push(t);
+      else if (/^[a-zA-Z_]\w*$/.test(t)) operands.push(t);
+      else if (/^\d+\.?\d*$/.test(t)) operands.push(t);
+      else if (/^["']/.test(t)) operands.push(t);
+    });
+  });
+  return { ops, operands };
+}
+
+/* ===== HALSTEAD ===== */
+function halstead(code) {
+  const { ops, operands } = tokenize(code);
+  const n1 = Math.max(new Set(ops).size, 1);
+  const n2 = Math.max(new Set(operands).size, 1);
+  const N1 = Math.max(ops.length, 1);
+  const N2 = Math.max(operands.length, 1);
+  const n  = n1 + n2;
+  const N  = N1 + N2;
+  const V  = N * Math.log2(n);
+  const D  = (n1 / 2) * (N2 / n2);
+  const E  = D * V;
+  return {
+    n1, n2, N1, N2,
+    D: Math.round(D * 10) / 10,
+    E: Math.round(E),
+    V: Math.round(V)
+  };
+}
+
+/* ===== COGNITIVE COMPLEXITY ===== */
+function cognitiveComplexity(code) {
+  const lines = code.split('\n');
+  let total = 0;
+  const breakdown = [];
+
+  lines.forEach((line, idx) => {
+    const stripped = line.replace(/#.*/,'');
+    const indent   = (line.match(/^(\s*)/) || ['',''])[1].length;
+    const depth    = Math.floor(indent / 4);
+
+    let added = 0, reason = '';
+
+    if (/^\s*(if|elif)\s/.test(stripped)) {
+      added = 1 + depth; reason = `if/elif (+${1+depth}, nesting depth ${depth})`;
+    } else if (/^\s*else\s*:/.test(stripped)) {
+      added = 1; reason = 'else (+1)';
+    } else if (/^\s*for\s/.test(stripped)) {
+      added = 1 + depth; reason = `for loop (+${1+depth}, nesting depth ${depth})`;
+    } else if (/^\s*while\s/.test(stripped)) {
+      added = 1 + depth; reason = `while loop (+${1+depth}, nesting depth ${depth})`;
+    } else if (/^\s*(try|except|finally)\s*:/.test(stripped)) {
+      added = 1; reason = 'try/except/finally (+1)';
+    } else if (/lambda\s/.test(stripped)) {
+      added = 1; reason = 'lambda expression (+1)';
+    } else if (/\[.*\bfor\b.*\bin\b/.test(stripped)) {
+      added = 2; reason = 'list comprehension (+2)';
+    } else if (/\{.*\bfor\b.*\bin\b/.test(stripped)) {
+      added = 2; reason = 'dict/set comprehension (+2)';
+    }
+
+    const bools = (stripped.match(/\b(and|or)\b/g) || []).length;
+    if (bools > 0) {
+      added  += bools;
+      reason += (reason ? ', ' : '') + `boolean operators (+${bools})`;
+    }
+
+    const ternary = /\bif\b.*\belse\b/.test(stripped) && !/^\s*(if|elif)\s/.test(stripped);
+    if (ternary) {
+      added  += 1;
+      reason += (reason ? ', ' : '') + 'ternary expression (+1)';
+    }
+
+    if (added > 0) {
+      total += added;
+      breakdown.push({ line: idx + 1, cost: added, reason });
+    }
+  });
+
+  return { total, breakdown };
+}
+
+/* ===== CLASSIFY ===== */
+function classify(D, E, cog) {
+  const score = (D > 20 ? 2 : D > 10 ? 1 : 0)
+              + (E > 5000 ? 2 : E > 2000 ? 1 : 0)
+              + (cog > 15 ? 2 : cog > 7 ? 1 : 0);
+  if (score >= 4) return { cls:'danger', label:'⚠ Heavy cognitive load — likely to overwhelm a beginner' };
+  if (score >= 2) return { cls:'warn',   label:'◐ Moderate cognitive load — may challenge introductory students' };
+  return               { cls:'ok',    label:'✓ Low cognitive load — within the safe introductory learning zone' };
+}
+
+function colorCls(val, lo, hi) {
+  return val > hi ? 'val-danger' : val > lo ? 'val-warn' : 'val-ok';
+}
+
+/* ===== RENDER ONE SIDE ===== */
+function renderSide(metricsId, verdictId, barsId, cogId, code) {
+  if (!code.trim()) {
+    document.getElementById(metricsId).innerHTML = '';
+    document.getElementById(verdictId).innerHTML = '';
+    document.getElementById(barsId).innerHTML    = '';
+    document.getElementById(cogId).innerHTML     = '';
+    return null;
+  }
+
+  const h = halstead(code);
+  const c = cognitiveComplexity(code);
+  const v = classify(h.D, h.E, c.total);
+
+  document.getElementById(metricsId).innerHTML = `
+    <div class="metric">
+      <div class="metric-label">Halstead Difficulty (D)</div>
+      <div class="metric-val ${colorCls(h.D,8,18)}">${h.D}</div>
+      <div class="metric-sub">η₁=${h.n1} &nbsp; η₂=${h.n2}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Halstead Effort (E)</div>
+      <div class="metric-val ${colorCls(h.E,1500,4000)}">${h.E.toLocaleString()}</div>
+      <div class="metric-sub">V = ${h.V.toLocaleString()}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Cognitive Complexity</div>
+      <div class="metric-val ${colorCls(c.total,6,14)}">${c.total}</div>
+      <div class="metric-sub">${c.breakdown.length} hotspot${c.breakdown.length !== 1 ? 's' : ''}</div>
+    </div>
+  `;
+
+  document.getElementById(verdictId).innerHTML = `
+    <div class="verdict verdict-${v.cls}">${v.label}</div>
+  `;
+
+  const maxE = 10000;
+  document.getElementById(barsId).innerHTML = `
+    <div class="bar-label"><span>Halstead Effort</span><span>${h.E.toLocaleString()} / ~${maxE.toLocaleString()}</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${Math.min(h.E/maxE*100,100).toFixed(1)}%;background:${h.E>4000?'#E24B4A':h.E>2000?'#EF9F27':'#639922'}"></div></div>
+    <div class="bar-label"><span>Cognitive Complexity</span><span>${c.total} / 20</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${Math.min(c.total/20*100,100).toFixed(1)}%;background:${c.total>14?'#E24B4A':c.total>7?'#EF9F27':'#639922'}"></div></div>
+  `;
+
+  let cogHtml = '';
+  if (c.breakdown.length > 0) {
+    cogHtml = '<div class="section-head">Complexity hotspots</div>';
+    c.breakdown.slice(0, 7).forEach(item => {
+      cogHtml += `<div class="cog-item">
+        <span class="cog-cost">${item.cost}</span>
+        <span class="cog-desc">${item.reason}</span>
+        <span class="cog-line">line ${item.line}</span>
+      </div>`;
+    });
+    if (c.breakdown.length > 7) {
+      cogHtml += `<div class="cog-item"><span class="cog-desc">… and ${c.breakdown.length-7} more hotspots</span></div>`;
+    }
+  }
+  document.getElementById(cogId).innerHTML = cogHtml;
+
+  return { h, c, v };
+}
+
+/* ===== COMPARE SECTION ===== */
+function renderCompare(r, s) {
+  if (!r || !s) { document.getElementById('compareSection').innerHTML = ''; return; }
+
+  const maxD = Math.max(r.h.D,  s.h.D,  1);
+  const maxE = Math.max(r.h.E,  s.h.E,  1);
+  const maxC = Math.max(r.c.total, s.c.total, 1);
+
+  const pct = (a,b) => a > 0 ? Math.round((1 - b/a)*100) : 0;
+  const dR = pct(r.h.D, s.h.D);
+  const eR = pct(r.h.E, s.h.E);
+  const cR = pct(r.c.total, s.c.total);
+
+  const sign = v => v > 0 ? `−${v}%` : v < 0 ? `+${Math.abs(v)}%` : '0%';
+
+  document.getElementById('compareSection').innerHTML = `
+    <div class="compare-title">Comparative reduction: raw LLM output vs. scaffolded version</div>
+
+    <div class="compare-row">
+      <span class="compare-name">Difficulty (D)</span>
+      <div class="compare-bars">
+        <div class="compare-bar bar-raw"  style="width:${(r.h.D/maxD*100).toFixed(0)}%">D = ${r.h.D}</div>
+        <div class="compare-bar bar-scaf" style="width:${Math.max(s.h.D/maxD*100,8).toFixed(0)}%">D = ${s.h.D}</div>
+      </div>
+      <span class="reduction-pct">${sign(dR)}</span>
+    </div>
+
+    <div class="compare-row">
+      <span class="compare-name">Effort (E)</span>
+      <div class="compare-bars">
+        <div class="compare-bar bar-raw"  style="width:${(r.h.E/maxE*100).toFixed(0)}%">${r.h.E.toLocaleString()}</div>
+        <div class="compare-bar bar-scaf" style="width:${Math.max(s.h.E/maxE*100,8).toFixed(0)}%">${s.h.E.toLocaleString()}</div>
+      </div>
+      <span class="reduction-pct">${sign(eR)}</span>
+    </div>
+
+    <div class="compare-row">
+      <span class="compare-name">Cog. Complexity</span>
+      <div class="compare-bars">
+        <div class="compare-bar bar-raw"  style="width:${(r.c.total/maxC*100).toFixed(0)}%">${r.c.total}</div>
+        <div class="compare-bar bar-scaf" style="width:${Math.max(s.c.total/maxC*100,8).toFixed(0)}%">${s.c.total}</div>
+      </div>
+      <span class="reduction-pct">${sign(cR)}</span>
+    </div>
+
+    <div class="insight-box">
+      <strong>Paper claim (Pillar 3):</strong>
+      Instructional scaffolding reduces Halstead Effort by approximately <strong>${eR}%</strong>
+      and Cognitive Complexity by <strong>${cR}%</strong> on this problem.
+      This quantifies the extraneous cognitive load reduction when AI output is constrained
+      to an introductory-semester token vocabulary — directly supporting the pedagogical
+      intervention proposed in Section 4.
+    </div>
+  `;
+}
+
+/* ===== MAIN ANALYZE ===== */
+function analyze() {
+  const rawCode  = document.getElementById('rawCode').value;
+  const scafCode = document.getElementById('scafCode').value;
+  const r = renderSide('rawMetrics',  'rawVerdict',  'rawBars',  'rawCog',  rawCode);
+  const s = renderSide('scafMetrics', 'scafVerdict', 'scafBars', 'scafCog', scafCode);
+  renderCompare(r, s);
+}
+
+/* ===== LOAD EXAMPLE ===== */
+function loadExample(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['prime','vowels','stack','fib','custom'][i] === name);
+  });
+  document.getElementById('rawCode').value  = examples[name].raw;
+  document.getElementById('scafCode').value = examples[name].scaf;
+  analyze();
+}
+
+/* Auto-analyze on input (custom mode) */
+document.getElementById('rawCode').addEventListener('input',  analyze);
+document.getElementById('scafCode').addEventListener('input', analyze);
+
+/* Boot */
+loadExample('prime');
+</script>
+</body>
+</html>
